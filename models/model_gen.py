@@ -43,7 +43,7 @@ def update_learning_rate(scheduler, optimizer):
     print('learning rate = %.7f' % lr)
 
 
-def init_weights(net, args, optimizer, init_type = 'normal', gain = 0.002):
+def init_weights(net, init_type = 'normal', gain = 0.002):
     def init_func(m):
         classname = m.__class__.__name__
         if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
@@ -62,42 +62,23 @@ def init_weights(net, args, optimizer, init_type = 'normal', gain = 0.002):
         elif classname.find('BatchNorm2d') != -1:
             init.normal_(m.weight.data, 1.0, gain)
             init.constant_(m.bias.data, 0.0)
-            
-        if args.load_pretrain:
-            print('Model loaded from {}'.format(args.load_pretrain))
-            model_dict = net.state_dict()
-            pretrained_dict = torch.load(args.load_pretrain)
-            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
         
-            model_dict.update(pretrained_dict)
-            net.load_state_dict(model_dict)
-            train_params = []
-            for k, v in net.named_parameters():
-                train_params.append(k)
-                pref = k[:12]
-                if pref == 'module.conv1' or pref == 'module.conv2' :
-                    v.requires_grad=False
-                    train_params.remove(k)
-        
-            optimizer = optim.Adam(params=train_params,
-                                   lr=args.lr,
-                                   weight_decay=0.005) 
         else:
             print('initialize network with %s' % init_type)
             net.apply(init_func)
 
             
-def init_net(net, args, optimizer, init_type='normal', init_gain=0.02, gpu_ids=[]):
+def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
     if len(gpu_ids) > 0:
         assert(torch.cuda.is_available())
         net.to(gpu_ids[0])
         net = nn.DataParallel(net, gpu_ids)
-    init_weights(net, args, optimizer, init_type, gain=init_gain)
+    init_weights(net, init_type, gain=init_gain)
     return net  
 
 
-def define_G(args, 
-             in_ch = 3, 
+ 
+def define_G(in_ch = 3, 
              out_ch = 1, 
              norm = 'batch', 
              init_type = 'normal',
@@ -106,7 +87,7 @@ def define_G(args,
     netG = None
     norm_layer = get_norm_layer(norm_type = norm)
     netG = UNet(in_ch, out_ch)
-    init_net(netG, args, init_type, init_gain, gpu_ids)
+    init_net(netG,  init_type, init_gain, gpu_ids)
 
 '''ngf: number of generator features
     Do we really need generator?  Question needs considering'''

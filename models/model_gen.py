@@ -106,7 +106,7 @@ def define_D(input_nc, ndf, which_model_netD,
     else:
         raise NotImplementedError('Discriminator model name [%s] is not recognized' %
                                   which_model_netD)
-    return init_net(netD, args, optimizer, init_type, init_gain, gpu_ids)
+    return init_net(netD, init_type, init_gain, gpu_ids)
 
     
 class PixelDiscriminator(nn.Module):

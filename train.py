@@ -80,7 +80,7 @@ if opt.load_pretrain:
             v.requires_grad=False
             train_params.remove(k)
         
-    optimizer_g = optim.Adam(params=train_params,
+    optimizer_g = optim.Adam(filter(lambda p: p.requires_grad, net_g.parameters()),
                              lr=opt.lr, 
                              betas=(opt.beta1, 0.999)) 
 

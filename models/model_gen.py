@@ -87,7 +87,8 @@ def define_G(in_ch = 3,
     netG = None
     norm_layer = get_norm_layer(norm_type = norm)
     netG = UNet(in_ch, out_ch)
-    init_net(netG,  init_type, init_gain, gpu_ids)
+    return init_net(netG,  init_type, init_gain, gpu_ids)
+     
 
 '''ngf: number of generator features
     Do we really need generator?  Question needs considering'''

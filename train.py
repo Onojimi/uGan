@@ -29,10 +29,11 @@ parser.add_argument('--lr', type=float, default=0.0002, help='initial learning r
 parser.add_argument('--lr_policy', type=str, default='lambda', help='learning rate policy: lambda|step|plateau|cosine')
 parser.add_argument('--lr_decay_iters', type=int, default=50, help='multiply by a gamma every lr_decay_iters iterations')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
-parser.add_argument('--cuda', action='store_true', help='use cuda?')
+parser.add_argument('--load_pretrain', action='store_true', help='use cuda?')
 parser.add_argument('--threads', type=int, default=4, help='number of threads for data loader to use')
 parser.add_argument('--seed', type=int, default=123, help='random seed to use. Default=123')
 parser.add_argument('--lamb', type=int, default=10, help='weight on L1 term in objective')
+parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
 opt = parser.parse_args()
 
 print(opt)
@@ -56,31 +57,31 @@ testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batc
 device = torch.device("cuda:0" if opt.cuda else "cpu")
 
 print('===> Building models')
-net_g = define_G(opt.input_nc, opt.output_nc, opt.ngf, 'batch', False, 'normal', 0.02, gpu_id=device)
-net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'basic', gpu_id=device)
+net_g = define_G(opt.input_nc, opt.output_nc, opt.ngf, 'batch', False, 'normal', 0.02, gpu_ids=opt.gpu_ids)
+net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'basic', gpu_ids=opt.gpu_ids)
 
 optimizer_g = optim.Adam(net_g.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 optimizer_d = optim.Adam(net_d.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
-if opt.load_pretrain:
-            print('Model loaded from {}'.format(opt.load_pretrain))
-            model_dict = net_g.state_dict()
-            pretrained_dict = torch.load(opt.load_pretrain)
-            pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+if opt.pretrained:
+    print('Model loaded from {}'.format(opt.load_pretrain))
+    model_dict = net_g.state_dict()
+    pretrained_dict = torch.load('CP50.pth')
+    pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
         
-            model_dict.update(pretrained_dict)
-            net_g.load_state_dict(model_dict)
-            train_params = []
-            for k, v in net_g.named_parameters():
-                train_params.append(k)
-                pref = k[:12]
-                if pref == 'module.conv1' or pref == 'module.conv2' :
-                    v.requires_grad=False
-                    train_params.remove(k)
+    model_dict.update(pretrained_dict)
+    net_g.load_state_dict(model_dict)
+    train_params = []
+    for k, v in net_g.named_parameters():
+        train_params.append(k)
+        pref = k[:12]
+        if pref == 'module.conv1' or pref == 'module.conv2' :
+            v.requires_grad=False
+            train_params.remove(k)
         
-            optimizer_g = optim.Adam(params=train_params,
-                                     lr=opt.lr, 
-                                     betas=(opt.beta1, 0.999)) 
+    optimizer_g = optim.Adam(params=train_params,
+                             lr=opt.lr, 
+                             betas=(opt.beta1, 0.999)) 
 
 criterionGAN = GANLoss().to(device)
 criterionL1 = nn.L1Loss().to(device)

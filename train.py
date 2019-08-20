@@ -58,7 +58,7 @@ testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batc
 device = torch.device("cuda:0" if opt.cuda else "cpu")
 
 print('===> Building models')
-net_g = define_G(opt.input_nc, opt.output_nc, opt.ngf, 'batch', False, 'normal', 0.02, gpu_ids=opt.gpu_ids)
+net_g = define_G(opt.input_nc, opt.output_nc,'batch','normal', 0.02, gpu_ids=opt.gpu_ids)
 net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'basic', gpu_ids=opt.gpu_ids)
 
 optimizer_g = optim.Adam(net_g.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))

@@ -64,7 +64,7 @@ net_d = define_D(opt.input_nc + opt.output_nc, opt.ndf, 'basic', gpu_ids=opt.gpu
 optimizer_g = optim.Adam(net_g.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 optimizer_d = optim.Adam(net_d.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
 
-if opt.pretrained:
+if opt.load_pretrain:
     print('Model loaded from {}'.format(opt.load_pretrain))
     model_dict = net_g.state_dict()
     pretrained_dict = torch.load('CP50.pth')

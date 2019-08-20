@@ -93,7 +93,6 @@ def define_G(in_ch = 3,
     Do we really need generator?  Question needs considering'''
     
 def define_D(input_nc, ndf, which_model_netD,
-             args, optimizer, 
              n_layers_D=3, norm='batch', use_sigmoid=False, init_type='normal', init_gain=0.02, gpu_ids=[]):
     netD = None
     norm_layer = get_norm_layer(norm_type=norm)

@@ -120,10 +120,7 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
         # forward
         net_g.train()
         
-        if opt.debug:
-            real_a, real_b = batch[0].to(device), batch[1].to(device)
-        else:
-            real_a, real_b = torch.zeros((256, 256, 3)), torch.zeros((256, 256, 3))
+        real_a, real_b = batch[0].to(device), batch[1].to(device)
         fake_b = net_g(real_a)
 
         ######################

@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from train import val_data_loader, criterionGen
 
 def compute_iou(true, pred):
     true_mask = np.asanyarray(true.cpu(), dtype = np.bool)
@@ -12,7 +11,7 @@ def compute_iou(true, pred):
     iou = intersection/union
     return iou
 
-def eval_net(val_data_loader, net_g, device, ):
+def eval_net(val_data_loader, net_g, device):
     ls = 0
     iou = 0
     criterion = nn.BCELoss()

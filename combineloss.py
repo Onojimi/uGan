@@ -8,7 +8,6 @@ class mixloss(nn.Module):
         self.eps = 0.01
 
     def forward(self, pred_mask, true_mask):
-        print(pred_mask, true_mask)
         inter = torch.dot(pred_mask.view(-1), true_mask.view(-1))
         union = torch.sum(pred_mask) + torch.sum(true_mask) + self.eps
         

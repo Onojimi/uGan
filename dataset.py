@@ -11,11 +11,10 @@ from utils import is_image_file, load_img
 
 
 class DatasetFromFolder(data.Dataset):
-    def __init__(self, image_dir, direction):
+    def __init__(self, image_dir):
         super(DatasetFromFolder, self).__init__()
-        self.direction = direction
-        self.a_path = join(image_dir, "a")
-        self.b_path = join(image_dir, "b")
+        self.a_path = join(image_dir, "images")
+        self.b_path = join(image_dir, "masks")
         self.image_filenames = [x for x in listdir(self.a_path) if is_image_file(x)]
 
         transform_list = [transforms.ToTensor(),
@@ -25,12 +24,12 @@ class DatasetFromFolder(data.Dataset):
         self.transform = transforms.Compose(transform_list)
 
     def __getitem__(self, index):
-        a = Image.open(join(self.a_path, self.image_filenames[index])).convert('RGB')
-        b = Image.open(join(self.b_path, self.image_filenames[index])).convert('RGB')
+        images = Image.open(join(self.a_path, self.image_filenames[index])).convert('RGB')
+        masks = Image.open(join(self.b_path, self.image_filenames[index])).convert('RGB')
 #         a = a.resize((286, 286), Image.BICUBIC)
 #         b = b.resize((286, 286), Image.BICUBIC)
-        a = transforms.ToTensor()(a)
-        b = transforms.ToTensor()(b)
+        images = transforms.ToTensor()(images)
+        masks = transforms.ToTensor()(masks)
 #         w_offset = random.randint(0, max(0, 286 - 256 - 1))
 #         h_offset = random.randint(0, max(0, 286 - 256 - 1))
 #     
@@ -47,10 +46,7 @@ class DatasetFromFolder(data.Dataset):
 #             a = a.index_select(2, idx)
 #             b = b.index_select(2, idx)
 
-        if self.direction == "a2b":
-            return a, b
-        else:
-            return b, a
+        return images, masks
 
     def __len__(self):
         return len(self.image_filenames)

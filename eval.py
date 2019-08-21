@@ -3,8 +3,10 @@ import torch.nn as nn
 import numpy as np
 
 def compute_iou(true, pred):
-    true_mask = np.asanyarray(true.cpu(), dtype = np.bool)
-    pred_mask = np.asanyarray(pred.cpu(), dtype = np.bool)
+    true_mask = true.detach()
+    pred_mask = pred.detach()
+    true_mask = np.asanyarray(true_mask.cpu(), dtype = np.bool)
+    pred_mask = np.asanyarray(pred_mask.cpu(), dtype = np.bool)
     union = np.sum(np.logical_or(true_mask, pred_mask))
     intersection = np.sum(np.logical_and(true_mask, pred_mask))
 #    print(union, intersection)

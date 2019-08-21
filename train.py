@@ -2,6 +2,7 @@ from __future__ import print_function
 import argparse
 import os
 from math import log10
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -10,13 +11,23 @@ from torch.utils.data import DataLoader
 import torch.backends.cudnn as cudnn
 
 from models.model_gen import define_G, define_D, GANLoss, get_scheduler, update_learning_rate
-from data import get_training_set, get_test_set
+from data import get_training_set, get_val_set
+from combineloss import mixloss
+from eval import eval_net
 
-# Training settings
+def compute_iou(true, pred):
+    true_mask = np.asanyarray(true.cpu(), dtype = np.bool)
+    pred_mask = np.asanyarray(pred, dtype = np.bool)
+    union = np.sum(np.logical_or(true_mask, pred_mask))
+    intersection = np.sum(np.logical_and(true_mask, pred_mask))
+#    print(union, intersection)
+    iou = intersection/union
+    return iou
+
 parser = argparse.ArgumentParser(description='pix2pix-pytorch-implementation')
 parser.add_argument('--dataset', required=True, help='facades')
 parser.add_argument('--batch_size', type=int, default=1, help='training batch size')
-parser.add_argument('--test_batch_size', type=int, default=1, help='testing batch size')
+parser.add_argument('--val_batch_size', type=int, default=1, help='val batch size')
 parser.add_argument('--direction', type=str, default='b2a', help='a2b or b2a')
 parser.add_argument('--input_nc', type=int, default=3, help='input image channels')
 parser.add_argument('--output_nc', type=int, default=3, help='output image channels')
@@ -35,6 +46,8 @@ parser.add_argument('--threads', type=int, default=4, help='number of threads fo
 parser.add_argument('--seed', type=int, default=123, help='random seed to use. Default=123')
 parser.add_argument('--lamb', type=int, default=10, help='weight on L1 term in objective')
 parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
+parser.add_argument('--loss', type= str, default = 'L1', help='type of loss function')
+
 opt = parser.parse_args()
 
 print(opt)
@@ -51,9 +64,9 @@ if opt.cuda:
 print('===> Loading datasets')
 root_path = "dataset/"
 train_set = get_training_set(root_path + opt.dataset, opt.direction)
-test_set = get_test_set(root_path + opt.dataset, opt.direction)
+val_set = get_val_set(root_path + opt.dataset, opt.direction)
 training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batch_size, shuffle=True)
-testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=opt.test_batch_size, shuffle=False)
+val_data_loader = DataLoader(dataset=val_set, num_workers=opt.threads, batch_size=opt.val_batch_size, shuffle=False)
 
 device = torch.device("cuda:0" if opt.cuda else "cpu")
 
@@ -85,9 +98,12 @@ if opt.load_pretrain:
                              betas=(opt.beta1, 0.999)) 
 
 criterionGAN = GANLoss().to(device)
-criterionL1 = nn.L1Loss().to(device)
 criterionMSE = nn.MSELoss().to(device)
 
+if opt.loss == 'mixloss':
+    criterionGen = mixloss().to(device)
+else:
+    criterionGen = nn.L1Loss().to(device)
 # setup optimizer
 
 net_g_scheduler = get_scheduler(optimizer_g, opt)
@@ -135,9 +151,9 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
         loss_g_gan = criterionGAN(pred_fake, True)
 
         # Second, G(A) = B
-        loss_g_l1 = criterionL1(fake_b, real_b) * opt.lamb
+        loss_gen = criterionGen(fake_b, real_b) * opt.lamb
         
-        loss_g = loss_g_gan + loss_g_l1
+        loss_g = loss_g_gan + loss_gen
         
         loss_g.backward()
 
@@ -150,15 +166,15 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
     update_learning_rate(net_d_scheduler, optimizer_d)
 
     # test
-    avg_psnr = 0
-    for batch in testing_data_loader:
-        input, target = batch[0].to(device), batch[1].to(device)
-
-        prediction = net_g(input)
-        mse = criterionMSE(prediction, target)
-        psnr = 10 * log10(1 / mse.item())
-        avg_psnr += psnr
-    print("===> Avg. PSNR: {:.4f} dB".format(avg_psnr / len(testing_data_loader)))
+#     avg_psnr = 0
+#     for batch in val_data_loader:
+#         input, target = batch[0].to(device), batch[1].to(device)
+#         prediction = net_g(input)
+#         mse = criterionMSE(prediction, target)
+#         psnr = 10 * log10(1 / mse.item())
+#         avg_psnr += psnr
+    avg_ls, avg_iou = eval_net(val_data_loader, net_g, device)
+    print("===> Avg. iou: {:.4f} , Avg. loss:{:.4f}".format(avg_iou, avg_ls))
 
     #checkpoint
     if epoch % 50 == 0:

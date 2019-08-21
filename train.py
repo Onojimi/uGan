@@ -14,6 +14,7 @@ from models.model_gen import define_G, define_D, GANLoss, get_scheduler, update_
 from data import get_training_set, get_val_set
 from combineloss import mixloss
 from eval import eval_net
+from tensorboardX import SummaryWriter
 
 def compute_iou(true, pred):
     true_mask = np.asanyarray(true.cpu(), dtype = np.bool)
@@ -28,7 +29,6 @@ parser = argparse.ArgumentParser(description='pix2pix-pytorch-implementation')
 parser.add_argument('--dataset', required=True, help='facades')
 parser.add_argument('--batch_size', type=int, default=1, help='training batch size')
 parser.add_argument('--val_batch_size', type=int, default=1, help='val batch size')
-parser.add_argument('--direction', type=str, default='b2a', help='a2b or b2a')
 parser.add_argument('--input_nc', type=int, default=3, help='input image channels')
 parser.add_argument('--output_nc', type=int, default=3, help='output image channels')
 parser.add_argument('--ngf', type=int, default=64, help='generator filters in first conv layer')
@@ -63,8 +63,8 @@ if opt.cuda:
 
 print('===> Loading datasets')
 root_path = "dataset/"
-train_set = get_training_set(root_path + opt.dataset, opt.direction)
-val_set = get_val_set(root_path + opt.dataset, opt.direction)
+train_set = get_training_set(root_path + opt.dataset)
+val_set = get_val_set(root_path + opt.dataset)
 training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batch_size, shuffle=True)
 val_data_loader = DataLoader(dataset=val_set, num_workers=opt.threads, batch_size=opt.val_batch_size, shuffle=False)
 
@@ -101,19 +101,23 @@ criterionGAN = GANLoss().to(device)
 criterionMSE = nn.MSELoss().to(device)
 
 if opt.loss == 'mixloss':
-    print('using BCE+Dice as loss')
+    print('==>using BCE+Dice as loss function')
     criterionGen = mixloss().to(device)
 else:
     criterionGen = nn.L1Loss().to(device)
+    print('==>using L1 loss as loss function')
 # setup optimizer
 
 net_g_scheduler = get_scheduler(optimizer_g, opt)
 net_d_scheduler = get_scheduler(optimizer_d, opt)
 
+writer = SummaryWriter(log_dir='../../log/sn1', comment='unet')
+
 for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
     # train
     for iteration, batch in enumerate(training_data_loader, 1):
         # forward
+        net_g.train()
         real_a, real_b = batch[0].to(device), batch[1].to(device)
         fake_b = net_g(real_a)
 
@@ -175,8 +179,10 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
 #         psnr = 10 * log10(1 / mse.item())
 #         avg_psnr += psnr
     avg_ls, avg_iou = eval_net(val_data_loader, net_g, device)
-    print("===> Avg. iou: {:.4f} , Avg. loss:{:.4f}".format(avg_iou, avg_ls))
-
+    print("===>Generator: Avg. iou: {:.4f} , Avg. loss:{:.4f}".format(avg_iou, avg_ls))
+    writer.add_scalar('train/loss', loss_g.item(), epoch)
+    writer.add_scalar('val/loss', avg_ls, epoch )
+    writer.add_scalar('val/IoU', avg_iou, epoch )
     #checkpoint
     if epoch % 50 == 0:
         if not os.path.exists("checkpoint"):

@@ -6,6 +6,7 @@ import torch
 import torchvision.transforms as transforms
 
 from utils import is_image_file, load_img, save_img
+from eval import compute_iou
 
 # Testing settings
 parser = argparse.ArgumentParser(description='pix2pix-pytorch-implementation')
@@ -21,26 +22,41 @@ device = torch.device("cuda:0" if opt.cuda else "cpu")
 model_path = "checkpoint/{}/netG_model_epoch_{}.pth".format(opt.dataset, opt.nepochs)
 
 net_g = torch.load(model_path).to(device)
+net_g.eval()
 
 if opt.direction == "a2b":
     image_dir = "dataset/{}/test/a/".format(opt.dataset)
+    mask_dir = "dataset/{}/test/b/".format(opt.dataset)
 else:
     image_dir = "dataset/{}/test/b/".format(opt.dataset)
+    mask_dir = "dataset/{}/test/a/".format(opt.dataset)
 
 image_filenames = [x for x in os.listdir(image_dir) if is_image_file(x)]
 
 transform_list = [transforms.ToTensor(),
-                  transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+                  #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                  ]
 
 transform = transforms.Compose(transform_list)
 
+iou = 0
+ct = 0
 for image_name in image_filenames:
+    true_mask = load_img(mask_dir + image_name)
+    true_mask = transform(true_mask)
+    
     img = load_img(image_dir + image_name)
     img = transform(img)
+    
     input = img.unsqueeze(0).to(device)
     out = net_g(input)
+    
+    iou += compute_iou(true_mask, out)
     out_img = out.detach().squeeze(0).cpu()
-
+    ct +=1
+    
     if not os.path.exists(os.path.join("result", opt.dataset)):
         os.makedirs(os.path.join("result", opt.dataset))
     save_img(out_img, "result/{}/{}".format(opt.dataset, image_name))
+
+print("IoU on test set is {:.4f}".format(iou/ct))

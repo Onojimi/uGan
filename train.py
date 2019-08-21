@@ -101,6 +101,7 @@ criterionGAN = GANLoss().to(device)
 criterionMSE = nn.MSELoss().to(device)
 
 if opt.loss == 'mixloss':
+    print('using BCE+Dice as loss')
     criterionGen = mixloss().to(device)
 else:
     criterionGen = nn.L1Loss().to(device)

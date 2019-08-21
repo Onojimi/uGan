@@ -47,6 +47,7 @@ parser.add_argument('--seed', type=int, default=123, help='random seed to use. D
 parser.add_argument('--lamb', type=int, default=10, help='weight on L1 term in objective')
 parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
 parser.add_argument('--loss', type= str, default = 'L1', help='type of loss function')
+parser.add_argument('--debug', type=int, default = 0, help='type of loss function')
 
 opt = parser.parse_args()
 
@@ -118,7 +119,11 @@ for epoch in range(opt.epoch_count, opt.niter + opt.niter_decay + 1):
     for iteration, batch in enumerate(training_data_loader, 1):
         # forward
         net_g.train()
-        real_a, real_b = batch[0].to(device), batch[1].to(device)
+        
+        if opt.debug:
+            real_a, real_b = batch[0].to(device), batch[1].to(device)
+        else:
+            real_a, real_b = torch.zeros((256, 256, 3)), torch.zeros((256, 256, 3))
         fake_b = net_g(real_a)
 
         ######################

@@ -21,7 +21,8 @@ def eval_net(val_data_loader, net_g, device):
     criterion = nn.BCELoss()
     for batch in val_data_loader:
         input, target = batch[0].to(device), batch[1].to(device)
-        prediction = net_g(input)
+        with torch.no_grad():
+            prediction = net_g(input)
         ls += criterion(prediction.view(-1), target.view(-1))
         iou += compute_iou(target, prediction)
     return ls/len(val_data_loader), iou/len(val_data_loader)

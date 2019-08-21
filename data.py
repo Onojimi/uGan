@@ -9,7 +9,7 @@ def get_training_set(root_dir, direction):
     return DatasetFromFolder(train_dir, direction)
 
 
-def get_test_set(root_dir, direction):
-    test_dir = join(root_dir, "test")
+def get_val_set(root_dir, direction):
+    val_dir = join(root_dir, "val")
 
-    return DatasetFromFolder(test_dir, direction)
+    return DatasetFromFolder(val_dir, direction)

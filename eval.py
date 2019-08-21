@@ -12,7 +12,6 @@ def compute_iou(true, pred):
     intersection = np.sum(np.logical_and(true_mask, pred_mask))
 #    print(union, intersection)
     iou = intersection/union
-    print(intersection, union)
     return iou
 
 def eval_net(val_data_loader, net_g, device):

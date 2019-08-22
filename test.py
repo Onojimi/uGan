@@ -24,12 +24,8 @@ model_path = "checkpoint/{}/netG_model_epoch_{}.pth".format(opt.dataset, opt.nep
 net_g = torch.load(model_path).to(device)
 net_g.eval()
 
-if opt.direction == "a2b":
-    image_dir = "dataset/{}/test/a/".format(opt.dataset)
-    mask_dir = "dataset/{}/test/b/".format(opt.dataset)
-else:
-    image_dir = "dataset/{}/test/b/".format(opt.dataset)
-    mask_dir = "dataset/{}/test/a/".format(opt.dataset)
+image_dir = "dataset/{}/test/images/".format(opt.dataset)
+mask_dir = "dataset/{}/test/masks/".format(opt.dataset)
 
 image_filenames = [x for x in os.listdir(image_dir) if is_image_file(x)]
 

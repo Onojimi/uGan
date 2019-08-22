@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 import pdb
 
@@ -23,8 +24,7 @@ def eval_net(val_data_loader, net_g, device):
         input, target = batch[0].to(device), batch[1].to(device)
         with torch.no_grad():
             prediction = net_g(input)
-        print(prediction, target)
-        pdb.set_trace()
+            prediction = F.sigmoid(prediction)
         ls += criterion(prediction.view(-1), target.view(-1))
         iou += compute_iou(target, prediction)
     return ls/len(val_data_loader), iou/len(val_data_loader)

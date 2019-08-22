@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.functional as F
 import torch.optim as optim
 
 import functools
@@ -108,6 +109,7 @@ class UnetGenerator(nn.Module):
 
     def forward(self, input):
         return self.model(input)
+         
 
 
 # Defines the submodule with skip connection.
